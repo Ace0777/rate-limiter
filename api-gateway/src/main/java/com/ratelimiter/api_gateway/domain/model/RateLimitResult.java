@@ -11,7 +11,7 @@ public class RateLimitResult {
     private final int limit;
     private final int remaining;
     private final long resetEpochSeconds;
-    private final int retryAfterSeconds;   
+    private final int retryAfterSeconds;
 
     public static RateLimitResult allowed(int limit, int remaining, long resetAt) {
         return RateLimitResult.builder()
