@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ratelimiter
+    url: jdbc:postgresql://localhost:5433/ratelimiter
     username: postgres
-    password: postgres
+    password: password
 
   jpa:
     hibernate:
