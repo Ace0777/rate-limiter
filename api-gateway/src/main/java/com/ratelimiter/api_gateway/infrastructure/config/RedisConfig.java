@@ -12,7 +12,7 @@ public class RedisConfig {
     @Bean
     public RedisScript<List<Long>> fixedWindowScript() {
         return RedisScript.of(
-                new ClassPathResource("scripts/fixed_window.lua"),
+                new ClassPathResource("scripts/token_bucket.lua"),
                 (Class<List<Long>>) (Class<?>) List.class
         );
     }
