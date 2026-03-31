@@ -28,3 +28,16 @@ management:
     export:
       prometheus:
         enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      redis-rate-limiter:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        register-health-indicator: true
+
+rate-limiter:
+  fallback-policy: FAIL_CLOSED #Troco de acordo com a regra de negocio/aplicação
