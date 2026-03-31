@@ -13,41 +13,42 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.List;
 
-@Component("tokenBucketRateLimiter")
+@Component("slidingWindowRateLimiter")
+@Primary
 @RequiredArgsConstructor
-public class TokenBucketRateLimiter implements RateLimiter {
+public class SlidingWindowRateLimiter implements RateLimiter {
 
     private final StringRedisTemplate redisTemplate;
-    private final RedisScript<List<Long>> tokenBucketScript;
+    private final RedisScript<List<Long>> slidingWindowScript;
 
-    private static final double REFILL_RATE_DIVISOR = 60.0;
+    private static final long WINDOW_MS = 60_000L; // 1 minuto em ms
 
     @Override
     public RateLimitResult check(Client client, String endpoint) {
-        Plan plan = client.getPlan();
 
-        int capacity   = plan.getRequestsPerMinute();
-        int refillRate = (int) Math.ceil(capacity / REFILL_RATE_DIVISOR);
-        long nowMs     = Instant.now().toEpochMilli();
+        Plan plan  = client.getPlan();
+        int limit  = plan.getRequestsPerMinute();
+        long nowMs = Instant.now().toEpochMilli();
 
-        String key = "tb:" + client.getApiKey() + ":" + endpoint;
+        String key = "sw:" + client.getApiKey() + ":" + endpoint;
 
         List<Long> result = redisTemplate.execute(
-                tokenBucketScript,
+                slidingWindowScript,
                 List.of(key),
-                String.valueOf(capacity),
-                String.valueOf(refillRate),
-                String.valueOf(nowMs)
+                String.valueOf(limit),
+                String.valueOf(nowMs),
+                String.valueOf(WINDOW_MS)
         );
 
         boolean allowed   = result.get(0) == 1L;
-        int remaining     = result.get(1).intValue();
-        int extra         = result.get(2).intValue();
+        int current       = result.get(1).intValue();
+        int retryAfter    = result.get(2).intValue();
         long resetAt      = Instant.now().getEpochSecond() + 60;
 
         if (allowed) {
-            return RateLimitResult.allowed(capacity, remaining, resetAt);
+            return RateLimitResult.allowed(limit, limit - current, resetAt);
         }
-        return RateLimitResult.denied(capacity, resetAt, extra);
+        return RateLimitResult.denied(limit, resetAt, retryAfter);
+
     }
 }
